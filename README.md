@@ -13,7 +13,7 @@ A simple and efficient downloader tool for managing file downloads.
 Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/downloader.git
+git clone https://github.com/yannuser/downloader.git
 cd downloader
 ```
 
