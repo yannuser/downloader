@@ -5,10 +5,8 @@ def main():
     Main function to initiate the download process for a specified URL.
     """
     url = input("url >")
-    print('')
+    print('\n\n')
     download(url)
-
-    # download("https://www.youtube.com/watch?v=v15sS1sL_S4/")
 
 
 if __name__ == "__main__":

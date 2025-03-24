@@ -2,14 +2,19 @@ from file_utils import check_format
 import os
 import requests
 from pytube import YouTube
+import subprocess
 
-"""
-Validates the URL to ensure it starts with either HTTP or HTTPS and is not too long.
 
-Returns:
-    bool: True if the URL is valid, False otherwise.
-"""
 def validate_url(url):
+    """
+    Validates the URL to ensure it starts with either HTTP or HTTPS and is not too long.
+
+    Args:
+        url (str): The URL to validate.
+
+    Returns:
+        bool: True if the URL is valid, False otherwise.
+    """
     allowed_schemes = ['http', 'https']
     if not any(url.startswith(f"{scheme}://") for scheme in allowed_schemes):
         print("Invalid URL scheme. Only HTTP and HTTPS are allowed.")
@@ -19,37 +24,16 @@ def validate_url(url):
         return False
     return True
 
-    
-def download(url):
+def get_download_path(format):
     """
-    Downloads a file or media content from the given URL and saves it to a specific directory 
-    based on the file format.
+    Maps the file format to a specific directory path.
 
     Args:
-        url (str): The URL of the file or media to be downloaded.
+        format (str): The file format.
 
     Returns:
-        None
-
-    Behavior:
-        - Validates the URL using the `validate_url` function.
-        - Determines the format of the file using the `check_format` function.
-        - Maps the file format to a specific directory path.
-        - Creates the target directory if it does not exist.
-        - Handles special cases for YouTube videos using the `pytube` library.
-        - Downloads the file in chunks for non-YouTube URLs using the `requests` library.
-        - Prints the download status and file path upon successful completion.
-        - Prints an error message if the format is unsupported or if the download fails.
-
-    Notes:
-        - Supported formats and their corresponding directories are defined in the `paths` dictionary.
-        - For YouTube videos, the highest resolution stream is downloaded.
-        - Requires the `pytube` and `requests` libraries to be installed.
-        - Handles exceptions for invalid URLs, unsupported formats, and download errors.
+        str: The directory path for the given format.
     """
-    if not validate_url(url):
-        return
-    format = check_format(url)
     paths = {
         'mp4': '../downloads/videos/',
         'm3u8': '../downloads/videos/',
@@ -61,29 +45,51 @@ def download(url):
         'txt': '../downloads/files/',
         'youtube': '../downloads/videos/'
     }
+    return paths.get(format)
 
-    if format not in paths:
-        print(f'Unsupported format: {format}')
-        return
+def create_directory(path):
+    """
+    Creates the target directory if it does not exist.
 
-    path = paths[format]
+    Args:
+        path (str): The directory path to create.
+    """
     os.makedirs(path, exist_ok=True)
 
-    if format == 'youtube':
-        print('Downloading YouTube video...')
-        try:
-            yt = YouTube(url)
-            stream = yt.streams.get_highest_resolution()
-            file_name = os.path.join(path, stream.default_filename)
-            stream.download(output_path=path)
-            print(f'URL: {url}\nPath: {file_name}\nDownload complete')
-        except Exception as e:
-            print(f'Failed to download YouTube video: {e}')
-        return
+def download_youtube_video(url, path):
+    """
+    Downloads a YouTube video using yt-dlp.
 
-    print(f'Downloading {format}...')
+    Args:
+        url (str): The YouTube video URL.
+        path (str): The directory path to save the video.
+    """
+    print('Downloading YouTube video with yt-dlp...')
+    try:
+        # Use yt-dlp to download the video
+        subprocess.run(
+            [
+                'yt-dlp',
+                '-f', 'best',
+                '-o', os.path.join(path, '%(title)s.%(ext)s'),
+                url
+            ],
+            check=True
+        )
+        print(f'URL: {url}\nDownload complete')
+    except subprocess.CalledProcessError as e:
+        print(f'Failed to download YouTube video: {e}')
+
+def download_file(url, path):
+    """
+    Downloads a file from the given URL in chunks.
+
+    Args:
+        url (str): The file URL.
+        path (str): The directory path to save the file.
+    """
+    print(f'Downloading file...')
     file_name = os.path.join(path, url.split('/')[-1])
-
     try:
         response = requests.get(url, stream=True)
         response.raise_for_status()
@@ -93,3 +99,28 @@ def download(url):
         print(f'URL: {url}\nPath: {file_name}\nDownload complete')
     except requests.RequestException as e:
         print(f'Failed to download: {e}')
+
+def download(url):
+    """
+    Downloads a file or media content from the given URL and saves it to a specific directory 
+    based on the file format.
+
+    Args:
+        url (str): The URL of the file or media to be downloaded.
+    """
+    if not validate_url(url):
+        return
+
+    format = check_format(url)
+    path = get_download_path(format)
+
+    if not path:
+        print(f'Unsupported format: {format}')
+        return
+
+    create_directory(path)
+
+    if format == 'youtube':
+        download_youtube_video(url, path)
+    else:
+        download_file(url, path)
