@@ -3,16 +3,50 @@ import os
 import requests
 from pytube import YouTube
 
+"""
+Validates the URL to ensure it starts with either HTTP or HTTPS and is not too long.
+
+Returns:
+    bool: True if the URL is valid, False otherwise.
+"""
 def validate_url(url):
     allowed_schemes = ['http', 'https']
     if not any(url.startswith(f"{scheme}://") for scheme in allowed_schemes):
-        raise ValueError("Invalid URL scheme. Only HTTP and HTTPS are allowed.")
+        print("Invalid URL scheme. Only HTTP and HTTPS are allowed.")
+        return False
     if len(url) > 2048:
-        raise ValueError("URL is too long.")
+        print("URL is too long.")
+        return False
     return True
 
     
 def download(url):
+    """
+    Downloads a file or media content from the given URL and saves it to a specific directory 
+    based on the file format.
+
+    Args:
+        url (str): The URL of the file or media to be downloaded.
+
+    Returns:
+        None
+
+    Behavior:
+        - Validates the URL using the `validate_url` function.
+        - Determines the format of the file using the `check_format` function.
+        - Maps the file format to a specific directory path.
+        - Creates the target directory if it does not exist.
+        - Handles special cases for YouTube videos using the `pytube` library.
+        - Downloads the file in chunks for non-YouTube URLs using the `requests` library.
+        - Prints the download status and file path upon successful completion.
+        - Prints an error message if the format is unsupported or if the download fails.
+
+    Notes:
+        - Supported formats and their corresponding directories are defined in the `paths` dictionary.
+        - For YouTube videos, the highest resolution stream is downloaded.
+        - Requires the `pytube` and `requests` libraries to be installed.
+        - Handles exceptions for invalid URLs, unsupported formats, and download errors.
+    """
     if not validate_url(url):
         return
     format = check_format(url)
