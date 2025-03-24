@@ -1,5 +1,7 @@
 from urllib.parse import urlparse
 
+import requests
+
 def check_format(url):
     """
     Determines the format of the file based on the URL.
@@ -30,4 +32,6 @@ def check_format(url):
         for keyword in keywords:
             if keyword in safe_url:
                 return format_type
-    return None
+            
+    x = requests.head(safe_url)
+    return str(x.headers.get('content-type')) if 'content-type' in x.headers else None
